@@ -1,0 +1,278 @@
+/* -------- Reset -------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  background: #f4f5fb;
+  color: #1f2933;
+}
+
+/* -------- Header -------- */
+.header {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  padding: 1.5rem 1rem 2rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+}
+
+.header__title h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.header__summary {
+  max-width: 960px;
+  margin: 1.5rem auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.summary-item {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  min-width: 180px;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  backdrop-filter: blur(4px);
+}
+
+.summary-item span:first-child {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.summary-item span:last-child {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+#btn-reset {
+  align-self: center;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 0.2rem;
+}
+
+#btn-reset:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* -------- Layout principal -------- */
+.main {
+  max-width: 960px;
+  margin: -1rem auto 2.5rem;
+  padding: 0 1rem;
+}
+
+section {
+  background: #ffffff;
+  border-radius: 0.9rem;
+  padding: 1.5rem 1.5rem 1.25rem;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  margin-top: 1.5rem;
+}
+
+section h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* -------- Campos de formulario -------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.9rem;
+}
+
+label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+input,
+select {
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+  background-color: #f9fafb;
+}
+
+input:focus,
+select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  background-color: #ffffff;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 0.8rem;
+  min-height: 1.1em;
+}
+
+/* -------- Botones -------- */
+button,
+input[type='submit'] {
+  font-family: inherit;
+}
+
+button[type='submit'],
+#form-gasto button[type='submit'],
+#btn-guardar-presupuesto {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+
+button[type='submit']:hover,
+#form-gasto button[type='submit']:hover,
+#btn-guardar-presupuesto:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25);
+  transform: translateY(-1px);
+}
+
+button[type='submit']:active,
+#form-gasto button[type='submit']:active,
+#btn-guardar-presupuesto:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* -------- Formulario de gastos -------- */
+#form-gasto {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+#form-gasto button[type='submit'] {
+  grid-column: 1 / -1;
+  justify-self: flex-start;
+}
+
+#gasto-error {
+  grid-column: 1 / -1;
+}
+
+/* -------- Tabla de gastos -------- */
+#tabla-gastos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+#tabla-gastos thead {
+  background-color: #f3f4f6;
+}
+
+#tabla-gastos th,
+#tabla-gastos td {
+  padding: 0.6rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+#tabla-gastos th {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.85rem;
+}
+
+#tabla-gastos tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+#tabla-gastos tbody tr:hover {
+  background-color: #eef2ff;
+}
+
+#tabla-gastos button {
+  background-color: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+#tabla-gastos button:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* -------- Responsive -------- */
+@media (max-width: 768px) {
+  .header__summary {
+    flex-direction: column;
+  }
+
+  .summary-item {
+    width: 100%;
+  }
+
+  .main {
+    margin-top: -0.5rem;
+  }
+
+  #form-gasto {
+    grid-template-columns: 1fr;
+  }
+
+  #form-gasto button[type='submit'] {
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 1.2rem 0.75rem 1.6rem;
+  }
+
+  .header__title h1 {
+    font-size: 1.3rem;
+  }
+
+  section {
+    padding: 1.2rem 1rem 1rem;
+  }
+}
