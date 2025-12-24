@@ -249,6 +249,27 @@ button[type='submit']:active,
   transform: translateY(-1px);
 }
 
+/* Vista de gráficos */
+#vista-graficos {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* centra el contenido (título + texto + gráfico) */
+}
+
+/* Tamaño del gráfico */
+#grafico-gastos {
+  max-width: 500px;
+  /* ancho máximo del gráfico */
+  max-height: 500px;
+  /* alto máximo del gráfico */
+  width: 100%;
+  /* que respete el max-width pero se adapte en mobile */
+  height: auto;
+  display: block;
+}
+
 /* -------- Responsive -------- */
 @media (max-width: 768px) {
   .header__summary {

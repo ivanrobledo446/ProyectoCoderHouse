@@ -55,60 +55,83 @@
       </section>
 
       <section id="planificador" hidden>
-        <h2 id="titulo-form-gasto">Registrar nuevo gasto</h2>
+        <div class="tabs">
+          <button
+            id="tab-agregar-gasto"
+            class="tab-button tab-button--active"
+            type="button"
+          >
+            Agregar gasto
+          </button>
+          <button id="tab-graficos" class="tab-button" type="button">
+            Gráficos
+          </button>
+        </div>
 
-        <form id="form-gasto">
-          <div class="field">
-            <label for="gasto-fecha">Fecha</label>
-            <input id="gasto-fecha" type="date" />
-          </div>
+        <!-- Vista: Agregar / listar gastos -->
+        <div id="vista-gastos">
+          <h2 id="titulo-form-gasto">Registrar nuevo gasto</h2>
 
-          <div class="field">
-            <label for="gasto-categoria">Categoría</label>
-            <select id="gasto-categoria">
-              <option value="">Selecciona una categoría</option>
+          <form id="form-gasto">
+            <div class="field">
+              <label for="gasto-fecha">Fecha</label>
+              <input id="gasto-fecha" type="date" />
+            </div>
+
+            <div class="field">
+              <label for="gasto-categoria">Categoría</label>
+              <select id="gasto-categoria">
+                <option value="">Selecciona una categoría</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="gasto-descripcion">Descripción</label>
+              <input id="gasto-descripcion" type="text" />
+            </div>
+
+            <div class="field">
+              <label for="gasto-cantidad">Cantidad</label>
+              <input id="gasto-cantidad" type="number" step="0.01" min="0" />
+            </div>
+
+            <button type="submit" id="btn-guardar-gasto">Agregar gasto</button>
+          </form>
+
+          <h2>Gastos</h2>
+
+          <div class="filters">
+            <label for="filtro-categoria">Filtrar por categoría:</label>
+            <select id="filtro-categoria">
+              <option value="">Todas las categorías</option>
             </select>
           </div>
 
-          <div class="field">
-            <label for="gasto-descripcion">Descripción</label>
-            <input id="gasto-descripcion" type="text" />
-          </div>
-
-          <div class="field">
-            <label for="gasto-cantidad">Cantidad</label>
-            <input id="gasto-cantidad" type="number" step="0.01" min="0" />
-          </div>
-
-          <button type="submit" id="btn-guardar-gasto">Agregar gasto</button>
-        </form>
-
-        <h2>Gastos</h2>
-
-        <div class="filters">
-          <label for="filtro-categoria">Filtrar por categoría:</label>
-          <select id="filtro-categoria">
-            <option value="">Todas las categorías</option>
-          </select>
+          <table id="tabla-gastos">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Categoría</th>
+                <th>Descripción</th>
+                <th>Cantidad</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-gastos"></tbody>
+          </table>
         </div>
 
-        <table id="tabla-gastos">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Categoría</th>
-              <th>Descripción</th>
-              <th>Cantidad</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-gastos"></tbody>
-        </table>
+        <!-- Vista: Gráficos -->
+        <div id="vista-graficos" hidden>
+          <h2>Gráficos de gastos por categoría</h2>
+          <canvas id="grafico-gastos"></canvas>
+        </div>
       </section>
     </main>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/script.js"></script>
   </body>
 </html>

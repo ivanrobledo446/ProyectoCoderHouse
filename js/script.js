@@ -1,6 +1,7 @@
 let presupuesto = 0;
 let gastos = [];
 let gastoEditandoId = null;
+let graficoGastos = null;
 
 const CATEGORIAS = [];
 
@@ -21,6 +22,11 @@ const btnReset = document.getElementById('btn-reset');
 const selectFiltroCategoria = document.getElementById('filtro-categoria');
 const btnGuardarGasto = document.getElementById('btn-guardar-gasto');
 const tituloFormGasto = document.getElementById('titulo-form-gasto');
+const tabAgregarGasto = document.getElementById('tab-agregar-gasto');
+const tabGraficos = document.getElementById('tab-graficos');
+const vistaGastos = document.getElementById('vista-gastos');
+const vistaGraficos = document.getElementById('vista-graficos');
+const canvasGraficoGastos = document.getElementById('grafico-gastos');
 
 /* -------- Referencias DOM - Formulario de gastos -------- */
 const formGasto = document.getElementById('form-gasto');
@@ -41,6 +47,7 @@ async function initApp() {
     mostrarPlanificador();
     actualizarResumen();
     renderizarGastos();
+    actualizarGraficoGastos();
   } else {
     mostrarConfigPresupuesto();
   }
@@ -61,6 +68,11 @@ function configurarEventos() {
     });
   }
 
+  if (tabAgregarGasto && tabGraficos) {
+    tabAgregarGasto.addEventListener('click', mostrarVistaGastos);
+    tabGraficos.addEventListener('click', mostrarVistaGraficos);
+  }
+
   btnReset.addEventListener('click', confirmarResetApp);
 }
 
@@ -73,7 +85,7 @@ function confirmarResetApp() {
     confirmButtonText: 'Sí, resetear',
     cancelButtonText: 'Cancelar',
     confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#6b7280'
+    cancelButtonColor: '#6b7280',
   }).then((result) => {
     if (result.isConfirmed) {
       resetearApp();
@@ -91,6 +103,7 @@ function mostrarPlanificador() {
   sectionConfigPresupuesto.hidden = true;
   sectionPlanificador.hidden = false;
   setFechaHoyPorDefecto();
+  mostrarVistaGastos();
 }
 
 function cargarDatosDesdeStorage() {
@@ -185,9 +198,7 @@ function manejarSubmitNuevoGasto(event) {
       : disponibleBase;
 
   if (cantidad > maximoPermitido) {
-    mostrarToastError(
-      'No podés registrar un gasto mayor al disponible'
-    );
+    mostrarToastError('No podés registrar un gasto mayor al disponible');
     return;
   }
 
@@ -209,6 +220,7 @@ function manejarSubmitNuevoGasto(event) {
   guardarGastosEnStorage();
   actualizarResumen();
   renderizarGastos();
+  actualizarGraficoGastos();
   if (estaEditando && gastoOriginal) {
     mostrarToastSuccess('Gasto actualizado correctamente');
   } else {
@@ -324,6 +336,7 @@ function eliminarGasto(id) {
   guardarGastosEnStorage();
   actualizarResumen();
   renderizarGastos();
+  actualizarGraficoGastos();
   mostrarToastSuccess('Gasto eliminado correctamente');
 }
 
@@ -399,6 +412,102 @@ function iniciarEdicionGasto(id) {
   inputDescripcionGasto.focus();
 }
 
+function mostrarVistaGastos() {
+  if (vistaGastos) vistaGastos.hidden = false;
+  if (vistaGraficos) vistaGraficos.hidden = true;
+
+  if (tabAgregarGasto) tabAgregarGasto.classList.add('tab-button--active');
+  if (tabGraficos) tabGraficos.classList.remove('tab-button--active');
+}
+
+function mostrarVistaGraficos() {
+  if (vistaGastos) vistaGastos.hidden = true;
+  if (vistaGraficos) vistaGraficos.hidden = false;
+
+  if (tabAgregarGasto) tabAgregarGasto.classList.remove('tab-button--active');
+  if (tabGraficos) tabGraficos.classList.add('tab-button--active');
+
+  actualizarGraficoGastos();
+}
+
+
+/* -------- Gráficos (Chart.js) -------- */
+
+function obtenerTotalesPorCategoria() {
+  const totales = {};
+
+  gastos.forEach((gasto) => {
+    if (!totales[gasto.categoria]) {
+      totales[gasto.categoria] = 0;
+    }
+    totales[gasto.categoria] += gasto.cantidad;
+  });
+
+  return totales;
+}
+
+function actualizarGraficoGastos() {
+  if (!canvasGraficoGastos || typeof Chart === 'undefined') {
+    return;
+  }
+
+  const totales = obtenerTotalesPorCategoria();
+
+  const labels = [];
+  const data = [];
+
+  // Usamos las categorías cargadas desde el JSON
+  CATEGORIAS.forEach((categoria) => {
+    const totalCat = totales[categoria.value] || 0;
+    if (totalCat > 0) {
+      labels.push(categoria.label);
+      data.push(totalCat);
+    }
+  });
+
+  // Si no hay datos, destruimos el gráfico existente y salimos
+  if (labels.length === 0) {
+    if (graficoGastos) {
+      graficoGastos.destroy();
+      graficoGastos = null;
+    }
+    return;
+  }
+
+  const ctx = canvasGraficoGastos.getContext('2d');
+
+  if (graficoGastos) {
+    graficoGastos.destroy();
+  }
+
+  graficoGastos = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: [
+            '#3b82f6',
+            '#f97316',
+            '#10b981',
+            '#eab308',
+            '#6366f1',
+            '#ec4899'
+          ]
+        }
+      ]
+    },
+    options: {
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+}
+
 /* -------- Resumen -------- */
 function actualizarResumen() {
   const totalGastado = calcularTotalGastado();
@@ -431,6 +540,7 @@ function resetearApp() {
   inputPresupuesto.value = '0';
   actualizarResumen();
   tbodyGastos.innerHTML = '';
+  actualizarGraficoGastos();
   limpiarErrorPresupuesto();
 
   if (btnGuardarGasto) {
@@ -464,8 +574,8 @@ function mostrarToast(mensaje, tipo = 'info') {
     position: 'right', // left, center o right
     stopOnFocus: true,
     style: {
-      background
-    }
+      background,
+    },
   }).showToast();
 }
 
