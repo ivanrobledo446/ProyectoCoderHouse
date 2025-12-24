@@ -187,10 +187,6 @@ button[type='submit']:active,
   justify-self: flex-start;
 }
 
-#gasto-error {
-  grid-column: 1 / -1;
-}
-
 /* -------- Tabla de gastos -------- */
 #tabla-gastos {
   width: 100%;
@@ -224,18 +220,31 @@ button[type='submit']:active,
   background-color: #eef2ff;
 }
 
-#tabla-gastos button {
-  background-color: #ef4444;
-  color: #ffffff;
+#tabla-gastos td button {
   border: none;
   border-radius: 999px;
   padding: 0.3rem 0.8rem;
   font-size: 0.8rem;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
+  color: #ffffff;
+  margin-right: 0.4rem;
 }
 
-#tabla-gastos button:hover {
+#tabla-gastos .btn-editar {
+  background-color: #f97316;
+}
+
+#tabla-gastos .btn-editar:hover {
+  background-color: #ea580c;
+  transform: translateY(-1px);
+}
+
+#tabla-gastos .btn-eliminar {
+  background-color: #ef4444;
+}
+
+#tabla-gastos .btn-eliminar:hover {
   background-color: #dc2626;
   transform: translateY(-1px);
 }

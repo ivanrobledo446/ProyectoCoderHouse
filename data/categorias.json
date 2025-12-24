@@ -1,0 +1,8 @@
+[
+  { "value": "comida", "label": "Comida" },
+  { "value": "transporte", "label": "Transporte" },
+  { "value": "casa", "label": "Casa" },
+  { "value": "ocio", "label": "Ocio" },
+  { "value": "servicios", "label": "Servicios" },
+  { "value": "otros", "label": "Otros" }
+]

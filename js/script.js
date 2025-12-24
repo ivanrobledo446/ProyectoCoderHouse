@@ -1,5 +1,8 @@
 let presupuesto = 0;
 let gastos = [];
+let gastoEditandoId = null;
+
+const CATEGORIAS = [];
 
 /* -------- Referencias DOM - Pantalla 1 -------- */
 const sectionConfigPresupuesto = document.getElementById('config-presupuesto');
@@ -15,6 +18,9 @@ const spanPresupuestoTotal = document.getElementById('presupuesto-total');
 const spanTotalGastado = document.getElementById('total-gastado');
 const spanTotalDisponible = document.getElementById('total-disponible');
 const btnReset = document.getElementById('btn-reset');
+const selectFiltroCategoria = document.getElementById('filtro-categoria');
+const btnGuardarGasto = document.getElementById('btn-guardar-gasto');
+const tituloFormGasto = document.getElementById('titulo-form-gasto');
 
 /* -------- Referencias DOM - Formulario de gastos -------- */
 const formGasto = document.getElementById('form-gasto');
@@ -22,14 +28,14 @@ const inputFechaGasto = document.getElementById('gasto-fecha');
 const selectCategoriaGasto = document.getElementById('gasto-categoria');
 const inputDescripcionGasto = document.getElementById('gasto-descripcion');
 const inputCantidadGasto = document.getElementById('gasto-cantidad');
-const mensajeErrorGasto = document.getElementById('gasto-error');
 
 /* -------- Referencias DOM - Tabla de gastos -------- */
 const tbodyGastos = document.getElementById('tbody-gastos');
 
-function initApp() {
+async function initApp() {
   cargarDatosDesdeStorage();
   configurarEventos();
+  await cargarCategoriasDesdeJSON();
 
   if (presupuesto > 0) {
     mostrarPlanificador();
@@ -49,7 +55,31 @@ function configurarEventos() {
     formGasto.addEventListener('submit', manejarSubmitNuevoGasto);
   }
 
-  btnReset.addEventListener('click', resetearApp);
+  if (selectFiltroCategoria) {
+    selectFiltroCategoria.addEventListener('change', () => {
+      renderizarGastos();
+    });
+  }
+
+  btnReset.addEventListener('click', confirmarResetApp);
+}
+
+function confirmarResetApp() {
+  Swal.fire({
+    title: '¿Resetear la aplicación?',
+    text: 'Se va a borrar el presupuesto y todos los gastos registrados.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, resetear',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      resetearApp();
+      mostrarToastSuccess('Aplicación reseteada correctamente');
+    }
+  });
 }
 
 function mostrarConfigPresupuesto() {
@@ -60,6 +90,7 @@ function mostrarConfigPresupuesto() {
 function mostrarPlanificador() {
   sectionConfigPresupuesto.hidden = true;
   sectionPlanificador.hidden = false;
+  setFechaHoyPorDefecto();
 }
 
 function cargarDatosDesdeStorage() {
@@ -88,7 +119,7 @@ function manejarSubmitPresupuesto() {
   let numero = Number(valorIngresado);
 
   if (isNaN(numero) || numero <= 0) {
-    mostrarErrorPresupuesto('Presupuesto inválido');
+    mostrarToastError('Presupuesto inválido');
     return;
   }
 
@@ -101,6 +132,7 @@ function manejarSubmitPresupuesto() {
 
   inputPresupuesto.value = presupuesto.toFixed(2);
 
+  mostrarToastSuccess('Presupuesto guardado correctamente');
   mostrarPlanificador();
   actualizarResumen();
   renderizarGastos();
@@ -132,34 +164,66 @@ function manejarSubmitNuevoGasto(event) {
     isNaN(cantidad) ||
     cantidad <= 0
   ) {
-    mostrarErrorGasto('Completar todos los campos con valores válidos');
+    mostrarToastError('Completar todos los campos con valores válidos');
     return;
   }
 
   cantidad = Number(cantidad.toFixed(2));
 
-  limpiarErrorGasto();
+  const estaEditando = gastoEditandoId !== null;
+  let gastoOriginal = null;
 
-  const nuevoGasto = crearObjetoGasto(fecha, categoria, descripcion, cantidad);
+  if (estaEditando) {
+    gastoOriginal = gastos.find((g) => g.id === gastoEditandoId);
+  }
 
-  gastos.push(nuevoGasto);
+  const disponibleBase = obtenerDisponibleActual();
+
+  const maximoPermitido =
+    estaEditando && gastoOriginal
+      ? disponibleBase + gastoOriginal.cantidad
+      : disponibleBase;
+
+  if (cantidad > maximoPermitido) {
+    mostrarToastError(
+      'No podés registrar un gasto mayor al disponible'
+    );
+    return;
+  }
+
+  if (estaEditando && gastoOriginal) {
+    gastoOriginal.fecha = fecha;
+    gastoOriginal.categoria = categoria;
+    gastoOriginal.descripcion = descripcion;
+    gastoOriginal.cantidad = cantidad;
+  } else {
+    const nuevoGasto = crearObjetoGasto(
+      fecha,
+      categoria,
+      descripcion,
+      cantidad
+    );
+    gastos.push(nuevoGasto);
+  }
 
   guardarGastosEnStorage();
-
   actualizarResumen();
   renderizarGastos();
+  if (estaEditando && gastoOriginal) {
+    mostrarToastSuccess('Gasto actualizado correctamente');
+  } else {
+    mostrarToastSuccess('Gasto agregado correctamente');
+  }
 
   formGasto.reset();
-}
-
-function mostrarErrorGasto(mensaje) {
-  mensajeErrorGasto.textContent = mensaje;
-  mensajeErrorGasto.style.display = 'block';
-}
-
-function limpiarErrorGasto() {
-  mensajeErrorGasto.textContent = '';
-  mensajeErrorGasto.style.display = 'none';
+  setFechaHoyPorDefecto();
+  gastoEditandoId = null;
+  if (btnGuardarGasto) {
+    btnGuardarGasto.textContent = 'Agregar gasto';
+  }
+  if (tituloFormGasto) {
+    tituloFormGasto.textContent = 'Registrar nuevo gasto';
+  }
 }
 
 function crearObjetoGasto(fecha, categoria, descripcion, cantidad) {
@@ -176,6 +240,17 @@ function guardarGastosEnStorage() {
   localStorage.setItem('gastos', JSON.stringify(gastos));
 }
 
+function setFechaHoyPorDefecto() {
+  if (!inputFechaGasto) return;
+
+  const hoy = new Date();
+  const year = hoy.getFullYear();
+  const month = String(hoy.getMonth() + 1).padStart(2, '0');
+  const day = String(hoy.getDate()).padStart(2, '0');
+
+  inputFechaGasto.value = `${year}-${month}-${day}`;
+}
+
 function renderizarGastos() {
   tbodyGastos.innerHTML = '';
 
@@ -183,7 +258,15 @@ function renderizarGastos() {
     return;
   }
 
-  gastos.forEach((gasto) => {
+  let gastosAMostrar = gastos;
+  if (selectFiltroCategoria && selectFiltroCategoria.value) {
+    const categoriaSeleccionada = selectFiltroCategoria.value;
+    gastosAMostrar = gastos.filter(
+      (gasto) => gasto.categoria === categoriaSeleccionada
+    );
+  }
+
+  gastosAMostrar.forEach((gasto) => {
     const tr = document.createElement('tr');
 
     const tdFecha = document.createElement('td');
@@ -200,10 +283,18 @@ function renderizarGastos() {
     tdCantidad.textContent = `$${gasto.cantidad.toFixed(2)}`;
 
     const tdAcciones = document.createElement('td');
+
+    const btnEditar = document.createElement('button');
+    btnEditar.textContent = 'Editar';
+    btnEditar.classList.add('btn-editar');
+    btnEditar.addEventListener('click', () => iniciarEdicionGasto(gasto.id));
+
     const btnEliminar = document.createElement('button');
     btnEliminar.textContent = 'Eliminar';
+    btnEliminar.classList.add('btn-eliminar');
     btnEliminar.addEventListener('click', () => eliminarGasto(gasto.id));
 
+    tdAcciones.appendChild(btnEditar);
     tdAcciones.appendChild(btnEliminar);
 
     tr.appendChild(tdFecha);
@@ -217,10 +308,95 @@ function renderizarGastos() {
 }
 
 function eliminarGasto(id) {
+  if (gastoEditandoId === id) {
+    gastoEditandoId = null;
+    formGasto.reset();
+    setFechaHoyPorDefecto();
+    if (btnGuardarGasto) {
+      btnGuardarGasto.textContent = 'Agregar gasto';
+    }
+    if (tituloFormGasto) {
+      tituloFormGasto.textContent = 'Registrar nuevo gasto';
+    }
+  }
+
   gastos = gastos.filter((gasto) => gasto.id !== id);
   guardarGastosEnStorage();
   actualizarResumen();
   renderizarGastos();
+  mostrarToastSuccess('Gasto eliminado correctamente');
+}
+
+function cargarCategorias() {
+  if (!selectCategoriaGasto) return;
+
+  selectCategoriaGasto.innerHTML =
+    '<option value="">Selecciona una categoría</option>';
+
+  CATEGORIAS.forEach((categoria) => {
+    const option = document.createElement('option');
+    option.value = categoria.value;
+    option.textContent = categoria.label;
+    selectCategoriaGasto.appendChild(option);
+  });
+}
+
+function cargarCategoriasFiltro() {
+  if (!selectFiltroCategoria) return;
+
+  selectFiltroCategoria.innerHTML =
+    '<option value="">Todas las categorías</option>';
+
+  CATEGORIAS.forEach((categoria) => {
+    const option = document.createElement('option');
+    option.value = categoria.value;
+    option.textContent = categoria.label;
+    selectFiltroCategoria.appendChild(option);
+  });
+}
+
+async function cargarCategoriasDesdeJSON() {
+  try {
+    const response = await fetch('data/categorias.json');
+
+    if (!response.ok) {
+      throw new Error('Error al cargar categorías');
+    }
+
+    const data = await response.json();
+
+    if (Array.isArray(data)) {
+      data.forEach((categoria) => {
+        CATEGORIAS.push(categoria);
+      });
+    }
+  } catch (error) {
+    mostrarToastError('No se pudieron cargar las categorías.');
+  } finally {
+    cargarCategorias();
+    cargarCategoriasFiltro();
+  }
+}
+
+function iniciarEdicionGasto(id) {
+  const gasto = gastos.find((g) => g.id === id);
+  if (!gasto) return;
+
+  gastoEditandoId = id;
+
+  inputFechaGasto.value = gasto.fecha;
+  selectCategoriaGasto.value = gasto.categoria;
+  inputDescripcionGasto.value = gasto.descripcion;
+  inputCantidadGasto.value = gasto.cantidad.toFixed(2);
+
+  if (btnGuardarGasto) {
+    btnGuardarGasto.textContent = 'Guardar cambios';
+  }
+  if (tituloFormGasto) {
+    tituloFormGasto.textContent = 'Editar gasto';
+  }
+
+  inputDescripcionGasto.focus();
 }
 
 /* -------- Resumen -------- */
@@ -235,8 +411,12 @@ function actualizarResumen() {
 
 function calcularTotalGastado() {
   if (!Array.isArray(gastos) || gastos.length === 0) return 0;
-
   return gastos.reduce((total, gasto) => total + gasto.cantidad, 0);
+}
+
+function obtenerDisponibleActual() {
+  const totalGastado = calcularTotalGastado();
+  return presupuesto - totalGastado;
 }
 
 /* -------- Resetear APP -------- */
@@ -246,12 +426,53 @@ function resetearApp() {
 
   presupuesto = 0;
   gastos = [];
+  gastoEditandoId = null;
 
   inputPresupuesto.value = '0';
   actualizarResumen();
   tbodyGastos.innerHTML = '';
   limpiarErrorPresupuesto();
-  limpiarErrorGasto();
+
+  if (btnGuardarGasto) {
+    btnGuardarGasto.textContent = 'Agregar gasto';
+  }
+  if (tituloFormGasto) {
+    tituloFormGasto.textContent = 'Registrar nuevo gasto';
+  }
 
   mostrarConfigPresupuesto();
+}
+
+/* -------- Librerias -------- */
+
+function mostrarToast(mensaje, tipo = 'info') {
+  let background = '#2563eb'; // azul por defecto
+
+  if (tipo === 'error') {
+    background = '#ef4444'; // rojo
+  } else if (tipo === 'success') {
+    background = '#16a34a'; // verde
+  } else if (tipo === 'warning') {
+    background = '#f59e0b'; // naranja
+  }
+
+  Toastify({
+    text: mensaje,
+    duration: 3000,
+    close: true,
+    gravity: 'top', // top o bottom
+    position: 'right', // left, center o right
+    stopOnFocus: true,
+    style: {
+      background
+    }
+  }).showToast();
+}
+
+function mostrarToastError(mensaje) {
+  mostrarToast(mensaje, 'error');
+}
+
+function mostrarToastSuccess(mensaje) {
+  mostrarToast(mensaje, 'success');
 }
