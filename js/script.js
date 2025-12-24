@@ -1,3 +1,6 @@
+/*************************************************
+ * ESTADO GLOBAL
+ *************************************************/
 let presupuesto = 0;
 let gastos = [];
 let gastoEditandoId = null;
@@ -5,7 +8,11 @@ let graficoGastos = null;
 
 const CATEGORIAS = [];
 
-/* -------- Referencias DOM - Pantalla 1 -------- */
+/*************************************************
+ * REFERENCIAS AL DOM
+ *************************************************/
+
+/* -------- Pantalla 1: Presupuesto -------- */
 const sectionConfigPresupuesto = document.getElementById('config-presupuesto');
 const inputPresupuesto = document.getElementById('input-presupuesto');
 const btnGuardarPresupuesto = document.getElementById(
@@ -13,7 +20,7 @@ const btnGuardarPresupuesto = document.getElementById(
 );
 const mensajeErrorPresupuesto = document.getElementById('presupuesto-error');
 
-/* -------- Referencias DOM - Pantalla 2 -------- */
+/* -------- Pantalla 2: Planificador -------- */
 const sectionPlanificador = document.getElementById('planificador');
 const spanPresupuestoTotal = document.getElementById('presupuesto-total');
 const spanTotalGastado = document.getElementById('total-gastado');
@@ -22,21 +29,26 @@ const btnReset = document.getElementById('btn-reset');
 const selectFiltroCategoria = document.getElementById('filtro-categoria');
 const btnGuardarGasto = document.getElementById('btn-guardar-gasto');
 const tituloFormGasto = document.getElementById('titulo-form-gasto');
-const tabAgregarGasto = document.getElementById('tab-agregar-gasto');
-const tabGraficos = document.getElementById('tab-graficos');
-const vistaGastos = document.getElementById('vista-gastos');
-const vistaGraficos = document.getElementById('vista-graficos');
-const canvasGraficoGastos = document.getElementById('grafico-gastos');
 
-/* -------- Referencias DOM - Formulario de gastos -------- */
+/* -------- Formulario de gastos -------- */
 const formGasto = document.getElementById('form-gasto');
 const inputFechaGasto = document.getElementById('gasto-fecha');
 const selectCategoriaGasto = document.getElementById('gasto-categoria');
 const inputDescripcionGasto = document.getElementById('gasto-descripcion');
 const inputCantidadGasto = document.getElementById('gasto-cantidad');
 
-/* -------- Referencias DOM - Tabla de gastos -------- */
+/* -------- Tabla de gastos -------- */
 const tbodyGastos = document.getElementById('tbody-gastos');
+
+/* -------- Gráfico -------- */
+const vistaGraficos = document.getElementById('vista-graficos');
+const canvasGraficoGastos = document.getElementById('grafico-gastos');
+
+/*************************************************
+ * INICIALIZACIÓN DE LA APP
+ *************************************************/
+
+document.addEventListener('DOMContentLoaded', initApp);
 
 async function initApp() {
   cargarDatosDesdeStorage();
@@ -53,8 +65,6 @@ async function initApp() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', initApp);
-
 function configurarEventos() {
   btnGuardarPresupuesto.addEventListener('click', manejarSubmitPresupuesto);
 
@@ -65,34 +75,16 @@ function configurarEventos() {
   if (selectFiltroCategoria) {
     selectFiltroCategoria.addEventListener('change', () => {
       renderizarGastos();
+      actualizarGraficoGastos();
     });
-  }
-
-  if (tabAgregarGasto && tabGraficos) {
-    tabAgregarGasto.addEventListener('click', mostrarVistaGastos);
-    tabGraficos.addEventListener('click', mostrarVistaGraficos);
   }
 
   btnReset.addEventListener('click', confirmarResetApp);
 }
 
-function confirmarResetApp() {
-  Swal.fire({
-    title: '¿Resetear la aplicación?',
-    text: 'Se va a borrar el presupuesto y todos los gastos registrados.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, resetear',
-    cancelButtonText: 'Cancelar',
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#6b7280',
-  }).then((result) => {
-    if (result.isConfirmed) {
-      resetearApp();
-      mostrarToastSuccess('Aplicación reseteada correctamente');
-    }
-  });
-}
+/*************************************************
+ * NAVEGACIÓN BÁSICA (MOSTRAR/OCULTAR SECCIONES)
+ *************************************************/
 
 function mostrarConfigPresupuesto() {
   sectionConfigPresupuesto.hidden = false;
@@ -103,8 +95,11 @@ function mostrarPlanificador() {
   sectionConfigPresupuesto.hidden = true;
   sectionPlanificador.hidden = false;
   setFechaHoyPorDefecto();
-  mostrarVistaGastos();
 }
+
+/*************************************************
+ * LOCALSTORAGE
+ *************************************************/
 
 function cargarDatosDesdeStorage() {
   const presupuestoGuardado = localStorage.getItem('presupuesto');
@@ -125,10 +120,16 @@ function cargarDatosDesdeStorage() {
   }
 }
 
-/* -------- Pantalla 1: Presupuesto -------- */
+function guardarGastosEnStorage() {
+  localStorage.setItem('gastos', JSON.stringify(gastos));
+}
+
+/*************************************************
+ * PANTALLA 1: PRESUPUESTO
+ *************************************************/
+
 function manejarSubmitPresupuesto() {
   const valorIngresado = inputPresupuesto.value.trim();
-
   let numero = Number(valorIngresado);
 
   if (isNaN(numero) || numero <= 0) {
@@ -137,18 +138,17 @@ function manejarSubmitPresupuesto() {
   }
 
   numero = Number(numero.toFixed(2));
-
   presupuesto = numero;
   localStorage.setItem('presupuesto', presupuesto.toString());
 
   limpiarErrorPresupuesto();
-
   inputPresupuesto.value = presupuesto.toFixed(2);
 
   mostrarToastSuccess('Presupuesto guardado correctamente');
   mostrarPlanificador();
   actualizarResumen();
   renderizarGastos();
+  actualizarGraficoGastos();
 }
 
 function mostrarErrorPresupuesto(mensaje) {
@@ -161,7 +161,10 @@ function limpiarErrorPresupuesto() {
   mensajeErrorPresupuesto.style.display = 'none';
 }
 
-/* -------- Pantalla 2: Gastos -------- */
+/*************************************************
+ * PANTALLA 2: FORMULARIO DE GASTOS
+ *************************************************/
+
 function manejarSubmitNuevoGasto(event) {
   event.preventDefault();
 
@@ -191,7 +194,6 @@ function manejarSubmitNuevoGasto(event) {
   }
 
   const disponibleBase = obtenerDisponibleActual();
-
   const maximoPermitido =
     estaEditando && gastoOriginal
       ? disponibleBase + gastoOriginal.cantidad
@@ -221,6 +223,7 @@ function manejarSubmitNuevoGasto(event) {
   actualizarResumen();
   renderizarGastos();
   actualizarGraficoGastos();
+
   if (estaEditando && gastoOriginal) {
     mostrarToastSuccess('Gasto actualizado correctamente');
   } else {
@@ -230,6 +233,7 @@ function manejarSubmitNuevoGasto(event) {
   formGasto.reset();
   setFechaHoyPorDefecto();
   gastoEditandoId = null;
+
   if (btnGuardarGasto) {
     btnGuardarGasto.textContent = 'Agregar gasto';
   }
@@ -248,10 +252,6 @@ function crearObjetoGasto(fecha, categoria, descripcion, cantidad) {
   };
 }
 
-function guardarGastosEnStorage() {
-  localStorage.setItem('gastos', JSON.stringify(gastos));
-}
-
 function setFechaHoyPorDefecto() {
   if (!inputFechaGasto) return;
 
@@ -263,6 +263,10 @@ function setFechaHoyPorDefecto() {
   inputFechaGasto.value = `${year}-${month}-${day}`;
 }
 
+/*************************************************
+ * PANTALLA 2: TABLA DE GASTOS
+ *************************************************/
+
 function renderizarGastos() {
   tbodyGastos.innerHTML = '';
 
@@ -271,6 +275,7 @@ function renderizarGastos() {
   }
 
   let gastosAMostrar = gastos;
+
   if (selectFiltroCategoria && selectFiltroCategoria.value) {
     const categoriaSeleccionada = selectFiltroCategoria.value;
     gastosAMostrar = gastos.filter(
@@ -319,11 +324,33 @@ function renderizarGastos() {
   });
 }
 
+function iniciarEdicionGasto(id) {
+  const gasto = gastos.find((g) => g.id === id);
+  if (!gasto) return;
+
+  gastoEditandoId = id;
+
+  inputFechaGasto.value = gasto.fecha;
+  selectCategoriaGasto.value = gasto.categoria;
+  inputDescripcionGasto.value = gasto.descripcion;
+  inputCantidadGasto.value = gasto.cantidad.toFixed(2);
+
+  if (btnGuardarGasto) {
+    btnGuardarGasto.textContent = 'Guardar cambios';
+  }
+  if (tituloFormGasto) {
+    tituloFormGasto.textContent = 'Editar gasto';
+  }
+
+  inputDescripcionGasto.focus();
+}
+
 function eliminarGasto(id) {
   if (gastoEditandoId === id) {
     gastoEditandoId = null;
     formGasto.reset();
     setFechaHoyPorDefecto();
+
     if (btnGuardarGasto) {
       btnGuardarGasto.textContent = 'Agregar gasto';
     }
@@ -338,6 +365,33 @@ function eliminarGasto(id) {
   renderizarGastos();
   actualizarGraficoGastos();
   mostrarToastSuccess('Gasto eliminado correctamente');
+}
+
+/*************************************************
+ * CARGA DE CATEGORÍAS
+ *************************************************/
+
+async function cargarCategoriasDesdeJSON() {
+  try {
+    const response = await fetch('data/categorias.json');
+
+    if (!response.ok) {
+      throw new Error('Error al cargar categorías');
+    }
+
+    const data = await response.json();
+
+    if (Array.isArray(data)) {
+      data.forEach((categoria) => {
+        CATEGORIAS.push(categoria);
+      });
+    }
+  } catch (error) {
+    mostrarToastError('No se pudieron cargar las categorías.');
+  } finally {
+    cargarCategorias();
+    cargarCategoriasFiltro();
+  }
 }
 
 function cargarCategorias() {
@@ -368,70 +422,9 @@ function cargarCategoriasFiltro() {
   });
 }
 
-async function cargarCategoriasDesdeJSON() {
-  try {
-    const response = await fetch('data/categorias.json');
-
-    if (!response.ok) {
-      throw new Error('Error al cargar categorías');
-    }
-
-    const data = await response.json();
-
-    if (Array.isArray(data)) {
-      data.forEach((categoria) => {
-        CATEGORIAS.push(categoria);
-      });
-    }
-  } catch (error) {
-    mostrarToastError('No se pudieron cargar las categorías.');
-  } finally {
-    cargarCategorias();
-    cargarCategoriasFiltro();
-  }
-}
-
-function iniciarEdicionGasto(id) {
-  const gasto = gastos.find((g) => g.id === id);
-  if (!gasto) return;
-
-  gastoEditandoId = id;
-
-  inputFechaGasto.value = gasto.fecha;
-  selectCategoriaGasto.value = gasto.categoria;
-  inputDescripcionGasto.value = gasto.descripcion;
-  inputCantidadGasto.value = gasto.cantidad.toFixed(2);
-
-  if (btnGuardarGasto) {
-    btnGuardarGasto.textContent = 'Guardar cambios';
-  }
-  if (tituloFormGasto) {
-    tituloFormGasto.textContent = 'Editar gasto';
-  }
-
-  inputDescripcionGasto.focus();
-}
-
-function mostrarVistaGastos() {
-  if (vistaGastos) vistaGastos.hidden = false;
-  if (vistaGraficos) vistaGraficos.hidden = true;
-
-  if (tabAgregarGasto) tabAgregarGasto.classList.add('tab-button--active');
-  if (tabGraficos) tabGraficos.classList.remove('tab-button--active');
-}
-
-function mostrarVistaGraficos() {
-  if (vistaGastos) vistaGastos.hidden = true;
-  if (vistaGraficos) vistaGraficos.hidden = false;
-
-  if (tabAgregarGasto) tabAgregarGasto.classList.remove('tab-button--active');
-  if (tabGraficos) tabGraficos.classList.add('tab-button--active');
-
-  actualizarGraficoGastos();
-}
-
-
-/* -------- Gráficos (Chart.js) -------- */
+/*************************************************
+ * GRÁFICOS (Chart.js)
+ *************************************************/
 
 function obtenerTotalesPorCategoria() {
   const totales = {};
@@ -451,12 +444,22 @@ function actualizarGraficoGastos() {
     return;
   }
 
+  if (!Array.isArray(gastos) || gastos.length === 0) {
+    if (graficoGastos) {
+      graficoGastos.destroy();
+      graficoGastos = null;
+    }
+    if (vistaGraficos) {
+      vistaGraficos.hidden = true;
+    }
+    return;
+  }
+
   const totales = obtenerTotalesPorCategoria();
 
   const labels = [];
   const data = [];
 
-  // Usamos las categorías cargadas desde el JSON
   CATEGORIAS.forEach((categoria) => {
     const totalCat = totales[categoria.value] || 0;
     if (totalCat > 0) {
@@ -465,13 +468,19 @@ function actualizarGraficoGastos() {
     }
   });
 
-  // Si no hay datos, destruimos el gráfico existente y salimos
   if (labels.length === 0) {
     if (graficoGastos) {
       graficoGastos.destroy();
       graficoGastos = null;
     }
+    if (vistaGraficos) {
+      vistaGraficos.hidden = true;
+    }
     return;
+  }
+
+  if (vistaGraficos) {
+    vistaGraficos.hidden = false;
   }
 
   const ctx = canvasGraficoGastos.getContext('2d');
@@ -493,22 +502,25 @@ function actualizarGraficoGastos() {
             '#10b981',
             '#eab308',
             '#6366f1',
-            '#ec4899'
-          ]
-        }
-      ]
+            '#ec4899',
+          ],
+        },
+      ],
     },
     options: {
       plugins: {
         legend: {
-          position: 'bottom'
-        }
-      }
-    }
+          position: 'bottom',
+        },
+      },
+    },
   });
 }
 
-/* -------- Resumen -------- */
+/*************************************************
+ * RESUMEN (PRESUPUESTO / GASTADO / DISPONIBLE)
+ *************************************************/
+
 function actualizarResumen() {
   const totalGastado = calcularTotalGastado();
   const disponible = presupuesto - totalGastado;
@@ -528,7 +540,28 @@ function obtenerDisponibleActual() {
   return presupuesto - totalGastado;
 }
 
-/* -------- Resetear APP -------- */
+/*************************************************
+ * RESET COMPLETO DE LA APP (Sweet Alert)
+ *************************************************/
+
+function confirmarResetApp() {
+  Swal.fire({
+    title: '¿Resetear la aplicación?',
+    text: 'Se va a borrar el presupuesto y todos los gastos registrados.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, resetear',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      resetearApp();
+      mostrarToastSuccess('Aplicación reseteada correctamente');
+    }
+  });
+}
+
 function resetearApp() {
   localStorage.removeItem('presupuesto');
   localStorage.removeItem('gastos');
@@ -553,29 +586,29 @@ function resetearApp() {
   mostrarConfigPresupuesto();
 }
 
-/* -------- Librerias -------- */
+/*************************************************
+ * NOTIFICACIONES (toastify-js)
+ *************************************************/
 
 function mostrarToast(mensaje, tipo = 'info') {
-  let background = '#2563eb'; // azul por defecto
+  let background = '#2563eb';
 
   if (tipo === 'error') {
-    background = '#ef4444'; // rojo
+    background = '#ef4444';
   } else if (tipo === 'success') {
-    background = '#16a34a'; // verde
+    background = '#16a34a';
   } else if (tipo === 'warning') {
-    background = '#f59e0b'; // naranja
+    background = '#f59e0b';
   }
 
   Toastify({
     text: mensaje,
     duration: 3000,
     close: true,
-    gravity: 'top', // top o bottom
-    position: 'right', // left, center o right
+    gravity: 'top',
+    position: 'right',
     stopOnFocus: true,
-    style: {
-      background,
-    },
+    style: { background },
   }).showToast();
 }
 
